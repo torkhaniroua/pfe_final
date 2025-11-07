@@ -1,0 +1,1 @@
+ALTER TABLE comment MODIFY COLUMN course_id BIGINT;
