@@ -10,6 +10,8 @@ import com.application.model.Professor;
 public interface ProfessorRepository extends CrudRepository<Professor, String> {
 
 	Professor findByEmail(String email);
+	
+	Professor findByEmailIgnoreCase(String email);
 
 	List<Professor> findProfessorListByEmail(String email);
 

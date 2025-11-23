@@ -9,10 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.application.model.User;
 
-public interface UserRepository extends CrudRepository<User, Integer>
+public interface UserRepository extends CrudRepository<User, String>
 {
 
     public User findByEmail(String email);
+    
+    public User findByEmailIgnoreCase(String email);
+    
+    public User findByVerificationToken(String verificationToken);
 	
 	public User findByUsername(String username);
 	

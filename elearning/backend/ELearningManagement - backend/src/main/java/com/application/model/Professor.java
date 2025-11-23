@@ -18,6 +18,7 @@ public class Professor
 	private String gender;
 	private String password;
 	private String status;
+	private String avatarUrl;
 	private String role = "Professor"; // ✅ ajouté
 
 	public Professor()
@@ -140,5 +141,13 @@ public class Professor
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public String getAvatarUrl() {
+		return avatarUrl;
+	}
+
+	public void setAvatarUrl(String avatarUrl) {
+		this.avatarUrl = avatarUrl;
 	}
 }

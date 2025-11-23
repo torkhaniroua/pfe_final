@@ -4,7 +4,10 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.application.model.Professor;
+import com.application.repository.CommentRepository;
+import com.application.repository.MessageRepository;
 import com.application.repository.ProfessorRepository;
 
 @Service
@@ -16,40 +19,64 @@ public class ProfessorService {
 	@Autowired
 	private BCryptPasswordEncoder passwordEncoder;
 
+	@Autowired
+	private CommentRepository commentRepository;
+
+	@Autowired
+	private MessageRepository messageRepository;
+
 	/**
-	 * ✅ Authentification d’un professeur
+	 * Authenticate professor; only allow if admin has approved.
 	 */
 	public Professor validateUser(String email, String password) {
 		Professor professor = professorRepo.findByEmail(email);
 		if (professor != null && passwordEncoder.matches(password, professor.getPassword())) {
+			String status = professor.getStatus() == null ? "" : professor.getStatus().trim().toUpperCase();
+			if (!status.equals("1") && !status.equals("ACCEPTED") && !status.equals("APPROVED")) {
+				throw new IllegalStateException("Compte professeur en attente d'approbation par l'administrateur.");
+			}
 			return professor;
 		}
 		return null;
 	}
 
 	/**
-	 * ✅ Sauvegarde d’un professeur avec mot de passe encodé
+	 * Save professor with encoded password and default pending status.
 	 */
 	public Professor saveProfessor(Professor professor) {
-		// Empêche un mot de passe déjà encodé d’être ré-encodé
+		// Avoid double-encoding a password that is already hashed
 		if (!professor.getPassword().startsWith("$2a$")) {
 			String hashedPassword = passwordEncoder.encode(professor.getPassword());
 			professor.setPassword(hashedPassword);
+		}
+		if (professor.getStatus() == null || professor.getStatus().isBlank()) {
+			professor.setStatus("PENDING"); // requires admin approval
 		}
 		return professorRepo.save(professor);
 	}
 
 	/**
-	 * ❌ Ancienne méthode (non sécurisée) — garde-la si besoin pour compatibilité
+	 * Legacy helper kept for compatibility.
 	 */
 	public Professor addNewProfessor(Professor professor) {
-		return saveProfessor(professor); // redirige vers la version sécurisée
+		return saveProfessor(professor);
 	}
 
 	/**
-	 * ✅ Mise à jour d’un professeur
+	 * Update professor profile; preserve password/avatar if not provided.
 	 */
 	public Professor updateProfessorProfile(Professor professor) {
+		Professor existing = professorRepo.findByEmail(professor.getEmail());
+		if (existing != null) {
+			if (professor.getPassword() == null || professor.getPassword().isBlank()) {
+				professor.setPassword(existing.getPassword());
+			} else if (!professor.getPassword().equals(existing.getPassword())) {
+				professor.setPassword(passwordEncoder.encode(professor.getPassword()));
+			}
+			if (professor.getAvatarUrl() == null || professor.getAvatarUrl().isBlank()) {
+				professor.setAvatarUrl(existing.getAvatarUrl());
+			}
+		}
 		return professorRepo.save(professor);
 	}
 
@@ -65,6 +92,10 @@ public class ProfessorService {
 		return professorRepo.findByEmail(email);
 	}
 
+	public Professor fetchProfessorByEmailIgnoreCase(String email) {
+		return professorRepo.findByEmailIgnoreCase(email);
+	}
+
 	public Professor fetchProfessorByProfessorname(String professorname) {
 		return professorRepo.findByProfessorname(professorname);
 	}
@@ -78,7 +109,7 @@ public class ProfessorService {
 	}
 
 	/**
-	 * ✅ Changement du statut du professeur (ex: activé)
+	 * Change professor status to approved.
 	 */
 	public void updateStatus(String email) {
 		professorRepo.updateStatus(email);
@@ -93,12 +124,30 @@ public class ProfessorService {
 	}
 
 	/**
-	 * ✅ Suppression d’un professeur par email
+	 * Delete professor by email.
 	 */
-	public void deleteUserByEmail(String email) {
-		Professor p = professorRepo.findByEmail(email);
-		if (p != null) {
-			professorRepo.delete(p);
+	@Transactional
+	public boolean deleteUserByEmail(String email) {
+		if (email == null) {
+			return false;
 		}
+		Professor p = professorRepo.findByEmailIgnoreCase(email);
+		if (p == null) {
+			return false;
+		}
+		// clean dependent data to avoid FK issues
+		commentRepository.deleteByProfessor(p);
+		messageRepository.deleteAllProfessorMessages(email);
+		professorRepo.delete(p);
+		return true;
+	}
+
+	public Professor updateProfessorAvatar(String email, String avatarUrl) {
+		Professor professor = professorRepo.findByEmail(email);
+		if (professor == null) {
+			return null;
+		}
+		professor.setAvatarUrl(avatarUrl);
+		return professorRepo.save(professor);
 	}
 }

@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.*;
 import com.application.configuration.JwtUtil;
 import com.application.model.Professor;
 import com.application.model.User;
+import com.application.model.request.ForgotPasswordRequest;
 import com.application.model.response.ErrorRes;
 import com.application.model.response.LoginProfessorRes;
 import com.application.model.response.LoginRes;
+import com.application.model.response.PasswordResetResponse;
 import com.application.services.UserService;
 
 @RestController
@@ -69,6 +71,20 @@ public class LoginController {
 		} catch (Exception e) {
 			ErrorRes errorResponse = new ErrorRes(HttpStatus.BAD_REQUEST, e.getMessage());
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+		}
+	}
+
+	@PostMapping("/auth/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+		try {
+			PasswordResetResponse response = userService.resetPassword(request.getEmail(), request.getRole());
+			return ResponseEntity.ok(response);
+		} catch (IllegalArgumentException ex) {
+			ErrorRes error = new ErrorRes(HttpStatus.NOT_FOUND, ex.getMessage());
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+		} catch (Exception ex) {
+			ErrorRes error = new ErrorRes(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to reset password");
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
 		}
 	}
 }

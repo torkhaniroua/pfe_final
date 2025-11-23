@@ -1,0 +1,120 @@
+    localStorage.setItem(`course-progress-${courseId}`, JSON.stringify(payload));
+  }
+
+  private restoreCourseState(courseId: number): { progress: number; budget: number; level: number } | null {
+    if (!this.canUseStorage()) {
+      return null;
+    }
+    const raw = localStorage.getItem(`course-progress-${courseId}`);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private canUseStorage(): boolean {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  }
+
+  private applyProgressGain(courseId: number, gain: number): void {
+    if (!gain || gain <= 0) {
+      return;
+    }
+
+    const current = this.progressMap[courseId] ?? 0;
+    let aggregate = current + gain;
+
+    while (aggregate >= 100) {
+      this.levelMap[courseId] = (this.levelMap[courseId] ?? 0) + 1;
+      aggregate -= 100;
+    }
+
+    this.progressMap[courseId] = Math.min(aggregate, 100);
+    this.budgetMap[courseId] = (this.budgetMap[courseId] ?? 0) + Math.round(gain * 0.8);
+    this.persistCourseState(courseId);
+  }
+
+  private rewardInteraction(courseId: number, interaction: 'video' | 'pdf'): void {
+    const gain = interaction === 'video' ? 14 : 8;
+    this.applyProgressGain(courseId, gain);
+  }
+
+  completeCourse(courseId: number): void {
+    const remaining = 100 - (this.progressMap[courseId] ?? 0);
+    if (remaining <= 0) {
+      return;
+    }
+    this.applyProgressGain(courseId, remaining);
+  }
+showPdf(course: any): void {
+  if (this.showPreviewMap[course.id]) {
+    this.showPreviewMap[course.id] = false;
+    this.selectedVideoIdMap[course.id] = null;
+    this.selectedPlaylistMap[course.id] = null;
+    return;
+  }
+
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(course.coursename, 10, 20);
+  // ... autres infos PDF
+
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+
+  this.pdfUrlMap[course.id] = url;
+  this.pdfBlobMap[course.id] = blob;
+
+  // Vidéo fixe avec id '2raikIQfmMY' et playlist 'PLVaasf-927w4T1f42loBJDEYbQP1wd9VB'
+  const videoId = '2raikIQfmMY';
+  const playlistId = 'PLVaasf-927w4T1f42loBJDEYbQP1wd9VB';
+  this.selectedVideoIdMap[course.id] = videoId;
+  this.selectedPlaylistMap[course.id] = playlistId;
+
+  this.showPreviewMap[course.id] = true;
+  // Progression mise à jour pendant la lecture
+}
+
+
+
+
+
+videoDataMap: { [key: number]: { videoId: string; playlistId: string } } = {
+  1: { videoId: '2raikIQfmMY', playlistId: 'PLVaasf-927w4T1f42loBJDEYbQP1wd9VB' },
+  2: { videoId: '_l4pJ7HCrl4', playlistId: 'PLrSOXFDHBtfHkq8dd3BbSaopVgRSYtgPv' }
+};
+
+
+  downloadPdf(course: any): void {
+    const blob = this.pdfBlobMap[course.id];
+    if (!blob) return;
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${course.coursename}_details.pdf`;
+    link.click();
+    this.rewardInteraction(course.id, 'pdf');
+  }
+
+
+
+  getPlaylistId(courseId: number): string {
+    const url = this.playlistLinks[courseId];
+    if (!url) return '';
+    const parts = url.split('list=');
+    if (parts.length < 2) return '';
+    return parts[1].split('&')[0];
+  }
+
+  playVideo(courseId: number, videoId: string) {
+  console.log(`Lecture vidéo pour courseId=${courseId}, videoId=${videoId}`);
+  this.selectedVideoMap[courseId] = this.sanitizer.bypassSecurityTrustResourceUrl(
+    'https://www.youtube.com/embed/' + videoId + '?autoplay=1'
+  );
+  this.showPreviewMap[courseId] = true;
+}
+}

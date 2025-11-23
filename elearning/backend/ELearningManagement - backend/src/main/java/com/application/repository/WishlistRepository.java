@@ -20,7 +20,10 @@ public interface WishlistRepository extends CrudRepository<Wishlist, Integer>
 	
 	public List<Wishlist> findByCoursetype(String coursetype);
 	
-    public List<Wishlist> findBySkilllevel(String skilllevel);
+	public List<Wishlist> findBySkilllevel(String skilllevel);
 	
 	public List<Wishlist> findByLanguage(String language);
+
+	// Supprimer les favoris d'un utilisateur
+	public void deleteByLikeduser(String likeduser);
 }

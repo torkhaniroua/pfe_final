@@ -49,4 +49,32 @@ public class ChatController {
         List<Message> messages = chatService.getCourseChat(userId, professorId);
         return ResponseEntity.ok(messages);
     }
+
+    @GetMapping("/professor/unread")
+    public ResponseEntity<Map<String, Long>> getProfessorUnreadCounts(@RequestParam String professorId) {
+        return ResponseEntity.ok(chatService.getUnreadCountsForProfessor(professorId));
+    }
+
+    @PostMapping("/professor/read")
+    public ResponseEntity<Map<String, String>> markProfessorConversationAsRead(
+            @RequestParam String professorId,
+            @RequestParam String userId) {
+
+        chatService.markConversationAsReadByProfessor(userId, professorId);
+        return ResponseEntity.ok(Map.of("message", "Conversation marked as read for professor."));
+    }
+
+    @PostMapping("/user/read")
+    public ResponseEntity<Map<String, String>> markUserConversationAsRead(
+            @RequestParam String userId,
+            @RequestParam String professorId) {
+
+        chatService.markConversationAsReadByUser(userId, professorId);
+        return ResponseEntity.ok(Map.of("message", "Conversation marked as read for user."));
+    }
+
+    @GetMapping("/user/unread")
+    public ResponseEntity<Map<String, Long>> getUserUnreadCounts(@RequestParam String userId) {
+        return ResponseEntity.ok(chatService.getUnreadCountsForUser(userId));
+    }
 }

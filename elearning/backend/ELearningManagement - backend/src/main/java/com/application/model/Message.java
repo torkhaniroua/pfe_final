@@ -41,4 +41,9 @@ public class Message {
     @JoinColumn(name = "receiver_professor_id")
     private Professor receiverProfessor;
 
+    @Column(nullable = false)
+    private boolean readByProfessor = false;
+
+    @Column(nullable = false)
+    private boolean readByUser = false;
 }

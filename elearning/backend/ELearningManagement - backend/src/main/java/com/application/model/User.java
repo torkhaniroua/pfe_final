@@ -14,9 +14,12 @@ public class User
 	private String gender;
 	private String profession;
 	private boolean isPremuim = false;
+	private boolean emailVerified = true;
+	private String verificationToken;
 	private String address;
 	private String password;
 	private String role = "User";
+	private String avatarUrl;
 	
 	public User() 
 	{
@@ -136,5 +139,29 @@ public class User
 	public void setPassword(String password) 
 	{
 		this.password = password;
+	}
+
+	public String getAvatarUrl() {
+		return avatarUrl;
+	}
+
+	public void setAvatarUrl(String avatarUrl) {
+		this.avatarUrl = avatarUrl;
+	}
+
+	public boolean isEmailVerified() {
+		return emailVerified;
+	}
+
+	public void setEmailVerified(boolean emailVerified) {
+		this.emailVerified = emailVerified;
+	}
+
+	public String getVerificationToken() {
+		return verificationToken;
+	}
+
+	public void setVerificationToken(String verificationToken) {
+		this.verificationToken = verificationToken;
 	}
 }

@@ -16,7 +16,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,6 +25,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.application.security.CustomOAuth2UserService;
+import com.application.security.OAuth2LoginFailureHandler;
+import com.application.security.OAuth2LoginSuccessHandler;
 import com.application.services.CustomUserDetailsService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
@@ -38,17 +40,27 @@ public class SecurityConfig  {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtAuthorizationFilter jwtAuthorizationFilter) {
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
+                          JwtAuthorizationFilter jwtAuthorizationFilter,
+                          OAuth2LoginSuccessHandler successHandler,
+                          OAuth2LoginFailureHandler failureHandler,
+                          CustomOAuth2UserService customOAuth2UserService) {
         this.userDetailsService = customUserDetailsService;
         this.jwtAuthorizationFilter = jwtAuthorizationFilter;
+        this.oAuth2LoginSuccessHandler = successHandler;
+        this.oAuth2LoginFailureHandler = failureHandler;
+        this.customOAuth2UserService = customOAuth2UserService;
 
     }
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http, NoOpPasswordEncoder noOpPasswordEncoder)
+    public AuthenticationManager authenticationManager(HttpSecurity http, BCryptPasswordEncoder passwordEncoder)
             throws Exception {
         AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(noOpPasswordEncoder);
+        authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
         return authenticationManagerBuilder.build();
     }
 
@@ -58,15 +70,24 @@ public class SecurityConfig  {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/register**")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/register**")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/professors/**")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/users/**")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/api/courses/**")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/quiz/**")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/addCourse")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/email-exists")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/verify-email")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/course/**")).hasAnyAuthority("ADMIN", "PROFESSOR")                    .requestMatchers(new AntPathRequestMatcher("/course/**")).permitAll()
                     // Allow unauthenticated access to the legacy course listing endpoint used by the frontend
                     .requestMatchers(new AntPathRequestMatcher("/listcourses")).permitAll()
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth -> oauth
+                    .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler)
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Correct way
             .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -87,16 +108,5 @@ public class SecurityConfig  {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    @SuppressWarnings("deprecation")
-    @Bean
-    public NoOpPasswordEncoder passwordEncoder() {
-        return (NoOpPasswordEncoder) NoOpPasswordEncoder.getInstance();
-    }
-    @Bean
-	public BCryptPasswordEncoder passwordEncoders() {
-		return new BCryptPasswordEncoder();
-	}
-
 
 }

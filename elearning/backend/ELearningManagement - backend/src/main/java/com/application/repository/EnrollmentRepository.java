@@ -39,4 +39,12 @@ public interface EnrollmentRepository extends CrudRepository<Enrollment, Integer
 	@Transactional
 	@Query(value = "UPDATE enrollment SET enrolledcount = ?1 WHERE coursename = ?2", nativeQuery = true)
 	public void updateEnrolledcount(int enrolledcount, String coursename);
+
+	@Modifying
+	@Transactional
+	void deleteByEnrolledusername(String enrolledusername);
+
+	@Modifying
+	@Transactional
+	void deleteByEnrolleduserid(String enrolleduserid);
 }

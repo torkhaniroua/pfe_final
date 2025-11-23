@@ -38,37 +38,42 @@ public class QuizController {
         this.questionService = questionService;
     }
 
-    // ✅ Ajouter des questions à un cours
+    // Ajouter des questions à un cours
     @PostMapping("/questions/add")
     public ResponseEntity<?> createQuestions(
             @RequestParam String courseId,
             @RequestBody List<QuestionDTO> questionDTOList
     ) {
         try {
-            // Log des données reçues
             System.out.println("CourseId reçu: " + courseId);
             System.out.println("Questions reçues: " + questionDTOList);
-            
+
             if (questionDTOList == null || questionDTOList.isEmpty()) {
                 return ResponseEntity
                     .badRequest()
                     .body("La liste des questions ne peut pas être vide");
             }
-        
-        // 🔍 Chercher le cours par son identifiant "courseid" (String)
-        System.out.println("Recherche du cours avec l'ID: " + courseId);
-        Course course = courseRepo.findByCourseid(courseId);
-        if (course == null) {
-            System.out.println("Cours non trouvé pour l'ID: " + courseId);
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("Course with ID '" + courseId + "' not found.");
-        }
 
-        // ✅ Création des questions et de leurs options
-        List<Question> savedQuestions = new ArrayList<>();
+            // Chercher le cours par courseid (String) ou par id numérique
+            System.out.println("Recherche du cours avec l'ID: " + courseId);
+            Course course = courseRepo.findByCourseid(courseId);
+            if (course == null) {
+                try {
+                    long idAsLong = Long.parseLong(courseId);
+                    course = courseRepo.findById(idAsLong).orElse(null);
+                } catch (NumberFormatException ignore) {
+                    // courseId non numérique
+                }
+            }
+            if (course == null) {
+                System.out.println("Cours non trouvé pour l'ID: " + courseId);
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("Course with ID '" + courseId + "' not found.");
+            }
 
-        try {
+            List<Question> savedQuestions = new ArrayList<>();
+
             for (QuestionDTO dto : questionDTOList) {
                 System.out.println("Traitement de la question: " + dto.getContent());
                 Question question = Question.builder()
@@ -103,33 +108,34 @@ public class QuizController {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erreur lors de la sauvegarde: " + e.getMessage());
         }
-    } catch (Exception e) {
-        System.err.println("Erreur générale: " + e.getMessage());
-        e.printStackTrace();
-        return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Erreur générale: " + e.getMessage());
-    }
     }
 
-    // ✅ Récupérer les questions d’un cours spécifique
+    // Récupérer les questions d'un cours (courseid string ou id numérique)
     @GetMapping("/course/{courseId}/questions")
     public ResponseEntity<List<Question>> getQuestionsByCourse(@PathVariable String courseId) {
         Course course = courseRepo.findByCourseid(courseId);
         if (course == null) {
+            try {
+                long idAsLong = Long.parseLong(courseId);
+                course = courseRepo.findById(idAsLong).orElse(null);
+            } catch (NumberFormatException ignore) {
+                // not numeric
+            }
+        }
+        if (course == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        List<Question> questions = questionRepo.findByCourse(course);
+        List<Question> questions = questionRepo.findByCourseWithOptions(course);
         return ResponseEntity.ok(questions);
     }
 
-    // ✅ Récupérer toutes les questions (optionnel)
+    // Récupérer toutes les questions (optionnel)
     @GetMapping
     public List<Question> getAllQuestions() {
         return questionService.getAllQuestions();
     }
 
-    // ✅ Récupérer une question spécifique
+    // Récupérer une question spécifique
     @GetMapping("/{id}")
     public Question getQuestion(@PathVariable Long id) {
         return questionService.getQuestionById(id);
