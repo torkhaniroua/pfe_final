@@ -47,4 +47,8 @@ public interface EnrollmentRepository extends CrudRepository<Enrollment, Integer
 	@Modifying
 	@Transactional
 	void deleteByEnrolleduserid(String enrolleduserid);
+
+	@Modifying
+	@Transactional
+	void deleteByCourseid(String courseid);
 }

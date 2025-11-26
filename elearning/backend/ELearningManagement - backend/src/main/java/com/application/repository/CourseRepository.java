@@ -15,6 +15,9 @@ public interface CourseRepository extends CrudRepository<Course, Long>
 	
 	public Course findByCourseid(String courseid);
 	
+	// safer variant to avoid NonUniqueResultException if data contains duplicates
+	public Course findFirstByCourseid(String courseid);
+	
 	public List<Course> findByInstructorname(String instructorname);
 	
 	public List<Course> findByInstructorinstitution(String instructorinstitution);
@@ -22,6 +25,7 @@ public interface CourseRepository extends CrudRepository<Course, Long>
     public List<Course> findByEnrolleddate(String enrolleddate);
 	
 	public List<Course> findByCoursetype(String coursetype);
+	public List<Course> findByCoursetypeIgnoreCase(String coursetype);
 	
 	public List<Course> findByYoutubeurl(String youtubeurl);
 	

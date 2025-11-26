@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/comments")
 public class CommentController {
 
@@ -31,6 +32,48 @@ public class CommentController {
     @Autowired
     private CourseRepository courseRepository;
 
+    private Course resolveCourse(String courseId) {
+        if (courseId == null || courseId.isBlank()) {
+            throw new RuntimeException("CourseId is required");
+        }
+        // Try courseid
+        Course byId = courseRepository.findByCourseid(courseId);
+        if (byId != null) {
+            return byId;
+        }
+        Course first = courseRepository.findFirstByCourseid(courseId);
+        if (first != null) {
+            return first;
+        }
+        // Fallback: try coursename if courseId was actually a name
+        Course byName = courseRepository.findByCoursename(courseId);
+        if (byName != null) {
+            return byName;
+        }
+        throw new RuntimeException("Course not found");
+    }
+
+    private Professor resolveProfessor(String email) {
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Professor email is required");
+        }
+        // Prefer case-insensitive single match
+        try {
+            Professor professor = professorRepository.findByEmailIgnoreCase(email);
+            if (professor != null) {
+                return professor;
+            }
+        } catch (Exception ignored) {
+            // fallback below
+        }
+        // Fallback: first element from list to avoid NonUniqueResultException
+        List<Professor> list = professorRepository.findProfessorListByEmail(email);
+        if (list != null && !list.isEmpty()) {
+            return list.get(0);
+        }
+        throw new RuntimeException("Professor not found");
+    }
+
     @PostMapping
     public Comment createComment(
             @RequestParam(required = false) String userId,
@@ -44,9 +87,7 @@ public class CommentController {
             throw new RuntimeException("Exactly one of userId or professorId must be provided.");
         }
 
-        Course course = courseRepository.findByCourseid(courseId);
-        if (course == null)
-               new RuntimeException("Course not found");
+        Course course = resolveCourse(courseId);
 
         Comment comment = new Comment();
         comment.setCourse(course);
@@ -60,10 +101,7 @@ public class CommentController {
              new RuntimeException("User not found");
             comment.setUser(user);
         } else {
-            Professor professor = professorRepository.findByEmail(professorId);
-            if(professor == null)
-                new RuntimeException("Professor not found");
-            comment.setProfessor(professor);
+            comment.setProfessor(resolveProfessor(professorId));
         }
 
         if (parentId != null) {
@@ -81,10 +119,7 @@ public class CommentController {
 
     @GetMapping("/course/{courseId}")
     public List<Comment> getCommentsByCourse(@PathVariable String courseId) {
-        Course course = courseRepository.findByCourseid(courseId);
-        if(course == null)
-            new RuntimeException("Course not found");
-
+        Course course = resolveCourse(courseId);
         return commentRepository.findByCourse(course);
     }
 

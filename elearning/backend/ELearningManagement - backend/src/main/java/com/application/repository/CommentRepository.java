@@ -22,6 +22,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByUser(User user);
 
     List<Comment> findByProfessor(Professor professor);
+
+    void deleteByCourse(Course course);
     
     @Query("SELECT AVG(c.rating) FROM Comment c WHERE c.course = :course AND c.rating IS NOT NULL")
     Double findAverageRatingByCourse(@Param("course") Course course);

@@ -136,7 +136,10 @@ public class ProfessorController
 	{
 		Course courseObj = null;
 		String newID = getNewID();
-		course.setCourseid(newID);
+		// auto generate courseid if missing/blank
+		if (course.getCourseid() == null || course.getCourseid().isBlank()) {
+			course.setCourseid(newID);
+		}
 		if ((course.getInstructorEmail() == null || course.getInstructorEmail().isBlank()) && authentication != null) {
 			course.setInstructorEmail(authentication.getName());
 		}

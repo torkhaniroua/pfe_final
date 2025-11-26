@@ -26,4 +26,6 @@ public interface WishlistRepository extends CrudRepository<Wishlist, Integer>
 
 	// Supprimer les favoris d'un utilisateur
 	public void deleteByLikeduser(String likeduser);
+
+	void deleteByCourseid(String courseid);
 }

@@ -33,7 +33,7 @@ public class ProfessorService {
 		if (professor != null && passwordEncoder.matches(password, professor.getPassword())) {
 			String status = professor.getStatus() == null ? "" : professor.getStatus().trim().toUpperCase();
 			if (!status.equals("1") && !status.equals("ACCEPTED") && !status.equals("APPROVED")) {
-				throw new IllegalStateException("Compte professeur en attente d'approbation par l'administrateur.");
+				throw new IllegalStateException("Compte professeur non approuvé (status: " + status + "). Contactez l'administrateur.");
 			}
 			return professor;
 		}
