@@ -1,24 +1,16 @@
 package com.application.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.application.repository.CourseRepository;
-import com.application.repository.ProfessorRepository;
-import com.application.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.application.model.Course;
-import com.application.model.Professor;
-import com.application.model.User;
 import com.application.services.CourseService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/courses")
 public class CourseController {
 
@@ -28,18 +20,9 @@ public class CourseController {
     @Autowired
     private CourseRepository courseRepo;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ProfessorRepository professorRepository;
-
     // Create a new course
     @PostMapping
-    public ResponseEntity<Course> createCourse(@RequestBody Course course, Authentication authentication) {
-        if ((course.getInstructorEmail() == null || course.getInstructorEmail().isBlank()) && authentication != null) {
-            course.setInstructorEmail(authentication.getName());
-        }
+    public ResponseEntity<Course> createCourse(@RequestBody Course course) {
         Course savedCourse = courseService.saveCourse(course);
         return ResponseEntity.ok(savedCourse);
     }
@@ -54,58 +37,49 @@ public class CourseController {
     // Get course by id
     @GetMapping("/{id}")
     public ResponseEntity<Course> getCourseById(@PathVariable int id) {
-        Optional<Course> courseOpt = courseRepo.findById((long) id);
-        return courseOpt
+        // Ici, il faudrait une méthode findById dans service/repository
+        // Ajoutons un exemple simple:
+        return courseService.getAllCourses()
+                .stream()
+                .filter(c -> c.getId() == id)
+                .findFirst()
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().<Course>build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Update a course (full update)
     @PutMapping("/{id}")
-    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails, Authentication authentication) {
-        Optional<Course> existingOpt = courseRepo.findById(id);
-        if (existingOpt.isEmpty()) {
-            return ResponseEntity.notFound().<Course>build();
-        }
+    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails) {
+        return courseRepo.findById(id)
+                .map(existingCourse -> {
+                    existingCourse.setCoursename(courseDetails.getCoursename());
+                    existingCourse.setCoursetype(courseDetails.getCoursetype());
+                    existingCourse.setSkilllevel(courseDetails.getSkilllevel());
+                    existingCourse.setLanguage(courseDetails.getLanguage());
+                    existingCourse.setDescription(courseDetails.getDescription());
+                    // ✅ corriger ici (orthographe + bon getter/setter)
+                    existingCourse.setIsPremium(courseDetails.getIsPremium());
 
-        Course existingCourse = existingOpt.get();
-        existingCourse.setCoursename(courseDetails.getCoursename());
-        existingCourse.setCoursetype(courseDetails.getCoursetype());
-        existingCourse.setSkilllevel(courseDetails.getSkilllevel());
-        existingCourse.setLanguage(courseDetails.getLanguage());
-        existingCourse.setDescription(courseDetails.getDescription());
-        existingCourse.setIsPremium(courseDetails.getIsPremium());
-
-        if (courseDetails.getInstructorEmail() != null && !courseDetails.getInstructorEmail().isBlank()) {
-            existingCourse.setInstructorEmail(courseDetails.getInstructorEmail());
-        } else if (existingCourse.getInstructorEmail() == null && authentication != null) {
-            existingCourse.setInstructorEmail(authentication.getName());
-        }
-
-        Course updated = courseRepo.save(existingCourse);
-        return ResponseEntity.ok(updated);
+                    Course updated = courseRepo.save(existingCourse);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
 
     // Delete a course by id
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCourse(@PathVariable Long id, Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).<Void>build();
-        }
+    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
+        List<Course> courses = courseService.getAllCourses();
 
-        Optional<Course> courseOpt = courseRepo.findById(id);
-        if (courseOpt.isEmpty()) {
+        boolean exists = courses.stream().anyMatch(c -> c.getId() == id);
+        if (!exists) {
             return ResponseEntity.notFound().build();
         }
 
-        Course course = courseOpt.get();
-        String requesterEmail = authentication.getName();
-        if (!canDeleteCourse(course, requesterEmail)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).<Void>build();
-        }
-
+        // ✅ suppression directe via le service
         courseService.deleteCourseById(id);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -115,35 +89,11 @@ public class CourseController {
     public ResponseEntity<Course> getCourseByCoursename(@RequestParam String coursename) {
         Course course = courseService.fetchCourseByCoursename(coursename);
         if (course == null) {
-            return ResponseEntity.notFound().<Course>build();
+            return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(course);
     }
 
-    // Other search methods can be added here
+    // Autres méthodes de recherche similaires peuvent être ajoutées ici
 
-    private boolean canDeleteCourse(Course course, String requesterEmail) {
-        if (requesterEmail == null || course == null) {
-            return false;
-        }
-        if (isAdmin(requesterEmail)) {
-            return true;
-        }
-        if (course.getInstructorEmail() != null && course.getInstructorEmail().equalsIgnoreCase(requesterEmail)) {
-            return true;
-        }
-        if (course.getInstructorname() != null && course.getInstructorname().equalsIgnoreCase(requesterEmail)) {
-            return true;
-        }
-
-        Professor professor = professorRepository.findByEmailIgnoreCase(requesterEmail);
-        return professor != null
-                && course.getInstructorname() != null
-                && course.getInstructorname().equalsIgnoreCase(professor.getProfessorname());
-    }
-
-    private boolean isAdmin(String email) {
-        User user = userRepository.findByEmailIgnoreCase(email);
-        return user != null && "ADMIN".equalsIgnoreCase(user.getRole());
-    }
 }

@@ -9,14 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.application.model.User;
 
-public interface UserRepository extends CrudRepository<User, String>
+public interface UserRepository extends CrudRepository<User, Integer>
 {
 
-    public User findByEmail(String email);
-    
-    public User findByEmailIgnoreCase(String email);
-    
-    public User findByVerificationToken(String verificationToken);
+	public User findByEmail(String email);
+	public User findByEmailIgnoreCase(String email);
 	
 	public User findByUsername(String username);
 	
@@ -27,4 +24,14 @@ public interface UserRepository extends CrudRepository<User, String>
 	@Modifying
 	@Query(value = "update user set is_premuim = ?2 where email = ?1", nativeQuery = true)
 	public void updateStatus(String email , boolean is_premium);
+
+	@Transactional
+	@Modifying
+	@Query(value = "delete from user where email = ?1", nativeQuery = true)
+	public void deleteByEmailNative(String email);
+
+	@Transactional
+	@Modifying
+	@Query(value = "delete from user where lower(email) = lower(?1)", nativeQuery = true)
+	public void deleteByEmailIgnoreCase(String email);
 }

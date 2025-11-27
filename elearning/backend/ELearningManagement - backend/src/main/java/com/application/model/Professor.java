@@ -4,8 +4,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
-public class Professor
-{
+public class Professor {
 	@Id
 	private String email;
 	private String professorname;
@@ -18,18 +17,16 @@ public class Professor
 	private String gender;
 	private String password;
 	private String status;
+	private String role = "Professor";
 	private String avatarUrl;
-	private String role = "Professor"; // ✅ ajouté
 
-	public Professor()
-	{
+	public Professor() {
 		super();
 	}
 
-	public Professor(String email, String professorname, String professorid, String degreecompleted,
-					 String institutionname, String department, String experience, String mobile,
-					 String gender, String password, String status)
-	{
+	public Professor(String email, String professorname, String professorid, String degreecompleted, String institutionname,
+					 String department, String experience, String mobile, String gender, String password, String status,
+					 String avatarUrl) {
 		super();
 		this.email = email;
 		this.professorname = professorname;
@@ -42,10 +39,10 @@ public class Professor
 		this.gender = gender;
 		this.password = password;
 		this.status = status;
-		this.role = "Professor"; // ✅ par défaut
+		this.avatarUrl = avatarUrl;
+		this.role = "Professor";
 	}
 
-	// ✅ Ajout du getter/setter pour le rôle
 	public String getRole() {
 		return role;
 	}
@@ -54,7 +51,6 @@ public class Professor
 		this.role = role;
 	}
 
-	// ⚙️ Getters/Setters existants
 	public String getEmail() {
 		return email;
 	}

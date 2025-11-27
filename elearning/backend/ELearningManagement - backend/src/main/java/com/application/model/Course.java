@@ -1,22 +1,16 @@
 package com.application.model;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.PostLoad;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 public class Course {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	private long id;
+	private long id; // ✅ cohérent
 
 	private String coursename;
 	private String courseid;
@@ -30,14 +24,7 @@ public class Course {
 	private String skilllevel;
 	private String language;
 	private String description;
-	private String instructorEmail;
-
-	@Column(name = "is_premium")
-	private boolean isPremium = false;
-
-	@JsonIgnore
-	@Column(name = "is_premuim")
-	private boolean legacyIsPremuim = false;
+	private boolean isPremium = false; // ✅ corrigé (orthographe + nom standard)
 
 	public Course() {
 		super();
@@ -45,15 +32,13 @@ public class Course {
 
 	public Course(long id, String coursename, String courseid, String enrolleddate, String instructorname,
 				  String instructorinstitution, String enrolledcount, String youtubeurl, String websiteurl,
-				  String coursetype, String skilllevel, String language, String description, boolean isPremium,
-				  String instructorEmail) {
+				  String coursetype, String skilllevel, String language, String description, boolean isPremium) {
 		super();
 		this.id = id;
 		this.coursename = coursename;
 		this.courseid = courseid;
 		this.enrolleddate = enrolleddate;
 		this.instructorname = instructorname;
-		this.instructorEmail = instructorEmail;
 		this.instructorinstitution = instructorinstitution;
 		this.enrolledcount = enrolledcount;
 		this.youtubeurl = youtubeurl;
@@ -62,20 +47,10 @@ public class Course {
 		this.skilllevel = skilllevel;
 		this.language = language;
 		this.description = description;
-		setIsPremium(isPremium);
+		this.isPremium = isPremium;
 	}
 
-	@PrePersist
-	@PreUpdate
-	private void syncLegacyFlagBeforeWrite() {
-		this.legacyIsPremuim = this.isPremium;
-	}
-
-	@PostLoad
-	private void syncPremiumAfterRead() {
-		this.isPremium = this.legacyIsPremuim;
-	}
-
+	// ✅ ID
 	public long getId() {
 		return id;
 	}
@@ -84,6 +59,7 @@ public class Course {
 		this.id = id;
 	}
 
+	// ✅ Getters/Setters pour les autres champs
 	public String getCoursename() {
 		return coursename;
 	}
@@ -180,20 +156,11 @@ public class Course {
 		this.description = description;
 	}
 
-	public String getInstructorEmail() {
-		return instructorEmail;
-	}
-
-	public void setInstructorEmail(String instructorEmail) {
-		this.instructorEmail = instructorEmail;
-	}
-
 	public boolean getIsPremium() {
 		return isPremium;
 	}
 
 	public void setIsPremium(boolean isPremium) {
 		this.isPremium = isPremium;
-		this.legacyIsPremuim = isPremium;
 	}
 }

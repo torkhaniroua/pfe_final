@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import com.application.model.Message;
 import com.application.services.ChatService;
 
 @RestController
 @RequestMapping("chat")
+@CrossOrigin(origins = "http://localhost:4200")
 public class ChatController {
 
     @Autowired
@@ -26,9 +28,12 @@ public class ChatController {
             @RequestParam String userId,
             @RequestParam String professorId,
             @RequestParam String content) {
-
-        chatService.sendMessageFromUserToProfessor(userId, professorId, content);
-        return ResponseEntity.ok(Map.of("message", "Message sent from user to professor."));
+        try {
+            chatService.sendMessageFromUserToProfessor(userId, professorId, content);
+            return ResponseEntity.ok(Map.of("message", "Message sent from user to professor."));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
     @PostMapping("/professor/send")
@@ -37,8 +42,12 @@ public class ChatController {
             @RequestParam String userId,
             @RequestParam String content) {
 
-        chatService.sendMessageFromProfessorToUser(professorId, userId, content);
-        return ResponseEntity.ok(Map.of("message", "Message sent from professor to user."));
+        try {
+            chatService.sendMessageFromProfessorToUser(professorId, userId, content);
+            return ResponseEntity.ok(Map.of("message", "Message sent from professor to user."));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
     @GetMapping
@@ -46,35 +55,11 @@ public class ChatController {
             @RequestParam String userId,
             @RequestParam String professorId) {
 
-        List<Message> messages = chatService.getCourseChat(userId, professorId);
-        return ResponseEntity.ok(messages);
-    }
-
-    @GetMapping("/professor/unread")
-    public ResponseEntity<Map<String, Long>> getProfessorUnreadCounts(@RequestParam String professorId) {
-        return ResponseEntity.ok(chatService.getUnreadCountsForProfessor(professorId));
-    }
-
-    @PostMapping("/professor/read")
-    public ResponseEntity<Map<String, String>> markProfessorConversationAsRead(
-            @RequestParam String professorId,
-            @RequestParam String userId) {
-
-        chatService.markConversationAsReadByProfessor(userId, professorId);
-        return ResponseEntity.ok(Map.of("message", "Conversation marked as read for professor."));
-    }
-
-    @PostMapping("/user/read")
-    public ResponseEntity<Map<String, String>> markUserConversationAsRead(
-            @RequestParam String userId,
-            @RequestParam String professorId) {
-
-        chatService.markConversationAsReadByUser(userId, professorId);
-        return ResponseEntity.ok(Map.of("message", "Conversation marked as read for user."));
-    }
-
-    @GetMapping("/user/unread")
-    public ResponseEntity<Map<String, Long>> getUserUnreadCounts(@RequestParam String userId) {
-        return ResponseEntity.ok(chatService.getUnreadCountsForUser(userId));
+        try {
+            List<Message> messages = chatService.getCourseChat(userId, professorId);
+            return ResponseEntity.ok(messages);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

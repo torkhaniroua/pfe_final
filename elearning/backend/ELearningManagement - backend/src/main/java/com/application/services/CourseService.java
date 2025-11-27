@@ -3,56 +3,16 @@ package com.application.services;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import com.application.model.Course;
-import com.application.model.Question;
 import com.application.repository.CourseRepository;
-import com.application.repository.CommentRepository;
-import com.application.repository.EnrollmentRepository;
-import com.application.repository.OptionRepository;
-import com.application.repository.QuestionRepository;
-import com.application.repository.WishlistRepository;
 
 @Service
 public class CourseService 
 {
 	@Autowired
 	public CourseRepository courseRepo;
-
-	@Autowired
-	private CommentRepository commentRepository;
-
-	@Autowired
-	private EnrollmentRepository enrollmentRepository;
-
-	@Autowired
-	private WishlistRepository wishlistRepository;
-
-	@Autowired
-	private QuestionRepository questionRepository;
-
-	@Autowired
-	private OptionRepository optionRepository;
-	@Transactional
 	public void deleteCourseById(Long id) {
-		Course course = courseRepo.findById(id).orElse(null);
-		if (course == null) {
-			return;
-		}
-		// Clean related data to avoid FK issues
-		commentRepository.deleteByCourse(course);
-		wishlistRepository.deleteByCourseid(course.getCourseid());
-		enrollmentRepository.deleteByCourseid(course.getCourseid());
-
-		List<Question> questions = questionRepository.findByCourseWithOptions(course);
-		questions.forEach(q -> {
-			if (q.getOptions() != null) {
-				q.getOptions().forEach(opt -> optionRepository.delete(opt));
-			}
-			questionRepository.delete(q);
-		});
-
-		courseRepo.delete(course);
+		courseRepo.deleteById(id);
 	}
 	public Course saveCourse(Course course)
 	{
@@ -101,7 +61,7 @@ public class CourseService
 	
 	public List<Course> fetchByCoursetype(String coursetype)
 	{
-		return (List<Course>)courseRepo.findByCoursetypeIgnoreCase(coursetype);
+		return (List<Course>)courseRepo.findByCoursetype(coursetype);
 	}
 	
 	public List<Course> fetchByYoutubeurl(String youtubeurl)

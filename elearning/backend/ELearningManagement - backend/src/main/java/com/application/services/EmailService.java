@@ -1,5 +1,7 @@
 package com.application.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -7,8 +9,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class EmailService {
@@ -28,12 +28,13 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    public void sendAccountCreationEmail(String to, String name) {
+    public void sendAccountCreationEmail(String to, String name, String loginUrl) {
         String safeName = (name == null || name.isBlank()) ? "there" : name;
         String body = "Hello " + safeName + ",\n\n"
                 + "Your eLearning account has been created successfully.\n"
-                + "You can now sign in with your email address.\n\n"
-                + "If this was not you, please ignore this email or contact support.";
+                + "You can sign in using the link below:\n"
+                + loginUrl + "\n\n"
+                + "If you did not request this, please ignore this email or contact support.";
         sendEmail(to, "Your eLearning account is ready", body);
     }
 
@@ -51,7 +52,6 @@ public class EmailService {
             log.info("Sent email to {}", to);
         } catch (MailException ex) {
             log.error("Failed to send email to {}: {}", to, ex.getMessage());
-            // swallow to avoid breaking the main flow; inspect logs for details
         }
     }
 }

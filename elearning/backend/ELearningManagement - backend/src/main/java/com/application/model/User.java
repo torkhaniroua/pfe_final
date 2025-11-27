@@ -2,6 +2,7 @@ package com.application.model;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Column;
 
 @Entity
 public class User 
@@ -14,19 +15,20 @@ public class User
 	private String gender;
 	private String profession;
 	private boolean isPremuim = false;
-	private boolean emailVerified = true;
-	private String verificationToken;
 	private String address;
 	private String password;
 	private String role = "User";
 	private String avatarUrl;
+	private String authProvider;
+	@Column(name = "email_verified")
+	private boolean emailVerified = false;
 	
 	public User() 
 	{
 		super();
 	}
 
-	public User(String email, String username, String userid, String mobile, String gender, String profession, String address, String password, String role, boolean isPremuim) 
+	public User(String email, String username, String userid, String mobile, String gender, String profession, String address, String password, String role, boolean isPremuim, String avatarUrl, String authProvider)
 	{
 		super();
 		this.email = email;
@@ -39,6 +41,8 @@ public class User
 		this.password = password;
 		this.role = role;
 		this.isPremuim = isPremuim;
+		this.avatarUrl = avatarUrl;
+		this.authProvider = authProvider;
 	}
 
 	public boolean getIsPremuim() 
@@ -149,19 +153,19 @@ public class User
 		this.avatarUrl = avatarUrl;
 	}
 
+	public String getAuthProvider() {
+		return authProvider;
+	}
+
+	public void setAuthProvider(String authProvider) {
+		this.authProvider = authProvider;
+	}
+
 	public boolean isEmailVerified() {
 		return emailVerified;
 	}
 
 	public void setEmailVerified(boolean emailVerified) {
 		this.emailVerified = emailVerified;
-	}
-
-	public String getVerificationToken() {
-		return verificationToken;
-	}
-
-	public void setVerificationToken(String verificationToken) {
-		this.verificationToken = verificationToken;
 	}
 }

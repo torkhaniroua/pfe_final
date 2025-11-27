@@ -42,13 +42,6 @@ public interface EnrollmentRepository extends CrudRepository<Enrollment, Integer
 
 	@Modifying
 	@Transactional
-	void deleteByEnrolledusername(String enrolledusername);
-
-	@Modifying
-	@Transactional
-	void deleteByEnrolleduserid(String enrolleduserid);
-
-	@Modifying
-	@Transactional
-	void deleteByCourseid(String courseid);
+	@Query(value = "DELETE FROM enrollment WHERE enrolledusername = ?1", nativeQuery = true)
+	public void deleteByEnrolledusername(String enrolledusername);
 }

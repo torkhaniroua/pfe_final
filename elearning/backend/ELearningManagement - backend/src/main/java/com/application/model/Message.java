@@ -25,6 +25,16 @@ public class Message {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    /**
+     * Flags to track whether each side has read the message.
+     * Needed because the DB columns are non-nullable (bit(1)).
+     */
+    @Column(name = "read_by_user", nullable = false)
+    private boolean readByUser = false;
+
+    @Column(name = "read_by_professor", nullable = false)
+    private boolean readByProfessor = false;
+
     @ManyToOne
     @JoinColumn(name = "sender_user_id")
     private User senderUser;
@@ -41,9 +51,4 @@ public class Message {
     @JoinColumn(name = "receiver_professor_id")
     private Professor receiverProfessor;
 
-    @Column(nullable = false)
-    private boolean readByProfessor = false;
-
-    @Column(nullable = false)
-    private boolean readByUser = false;
 }

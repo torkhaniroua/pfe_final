@@ -47,7 +47,6 @@ public class AdminBootstrap implements CommandLineRunner {
         admin.setGender("N/A");
         admin.setProfession("admin");
         admin.setAddress("system");
-        admin.setEmailVerified(true);
 
         userRepository.save(admin);
     }

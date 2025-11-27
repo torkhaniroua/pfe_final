@@ -1,19 +1,10 @@
 package com.application.controller;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.application.model.Chapter;
 import com.application.model.Course;
@@ -39,8 +27,6 @@ import com.application.services.WishlistService;
 @RestController
 public class ProfessorController 
 {	
-	@Value("${app.upload.dir:uploads}")
-	private String uploadDir;
 	@Autowired
 	private ProfessorService professorService;
 	
@@ -132,17 +118,11 @@ public class ProfessorController
 
 	@PostMapping("/addCourse")
 	@CrossOrigin(origins = "http://localhost:4200")
-	public Course addNewCourse(@RequestBody Course course, Authentication authentication) throws Exception
+	public Course addNewCourse(@RequestBody Course course) throws Exception
 	{
 		Course courseObj = null;
 		String newID = getNewID();
-		// auto generate courseid if missing/blank
-		if (course.getCourseid() == null || course.getCourseid().isBlank()) {
-			course.setCourseid(newID);
-		}
-		if ((course.getInstructorEmail() == null || course.getInstructorEmail().isBlank()) && authentication != null) {
-			course.setInstructorEmail(authentication.getName());
-		}
+		course.setCourseid(newID);
 		
 		courseObj = courseService.addNewCourse(course);
 		return courseObj;
@@ -260,11 +240,8 @@ public class ProfessorController
 
 	@DeleteMapping("professor/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable String id) {
-    	boolean deleted = professorService.deleteUserByEmail(id);
-		if (!deleted) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Professor not found or could not be deleted");
-		}
-		return ResponseEntity.ok().body("Professor deleted");
+    	professorService.deleteUserByEmail(id);
+		return ResponseEntity.ok().build();
     }
 
 
@@ -297,45 +274,15 @@ public class ProfessorController
 		Professor saved = professorService.updateProfessorProfile(professor);
 		return new ResponseEntity<>(saved, HttpStatus.OK);
 	}
-	@DeleteMapping("/professors/{email}")
+	@DeleteMapping("/professors/{email:.+}")
 	@CrossOrigin(origins = "http://localhost:4200")
 	public ResponseEntity<String> deleteProfessor(@PathVariable String email) {
-		boolean deleted = professorService.deleteUserByEmail(email);
-		if (!deleted) {
-			return new ResponseEntity<>("Professor not found or could not be deleted", HttpStatus.NOT_FOUND);
+    	try {
+			professorService.deleteUserByEmail(email);
+			return new ResponseEntity<>("Professor deleted successfully", HttpStatus.OK);
+		} catch (Exception ex) {
+			return new ResponseEntity<>("Professor not found", HttpStatus.NOT_FOUND);
 		}
-		return new ResponseEntity<>("Professor deleted successfully", HttpStatus.OK);
-	}
-
-	@PostMapping("/professors/{email}/avatar")
-	@CrossOrigin(origins = "http://localhost:4200")
-	public ResponseEntity<?> uploadProfessorAvatar(@PathVariable String email, @RequestParam("file") MultipartFile file) throws IOException {
-		if (file.isEmpty()) {
-			return ResponseEntity.badRequest().body("File is empty");
-		}
-		Professor professor = professorService.fetchProfessorByEmail(email);
-		if (professor == null) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		String originalName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
-		String extension = "";
-		int dotIndex = originalName.lastIndexOf('.');
-		if (dotIndex >= 0) {
-			extension = originalName.substring(dotIndex);
-		}
-		String filename = UUID.randomUUID().toString() + extension;
-		Path avatarDir = Paths.get(uploadDir, "professors").toAbsolutePath().normalize();
-		Files.createDirectories(avatarDir);
-		Path target = avatarDir.resolve(filename);
-		Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-
-		String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-				.path("/uploads/professors/")
-				.path(filename)
-				.toUriString();
-
-		professorService.updateProfessorAvatar(email, fileUrl);
-		return ResponseEntity.ok(java.util.Map.of("avatarUrl", fileUrl));
 	}
 
 

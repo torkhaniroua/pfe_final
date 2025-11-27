@@ -1,18 +1,17 @@
 package com.application.controller;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +28,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.application.model.Chapter;
 import com.application.model.Enrollment;
@@ -47,8 +44,6 @@ import com.application.services.WishlistService;
 @RestController
 public class UserController 
 {
-	@Value("${app.upload.dir:uploads}")
-	private String uploadDir;
 	@Autowired
 	private UserService userService;
 	
@@ -66,6 +61,12 @@ public class UserController
 	
 	@Autowired
 	private ChapterService chapterService;
+
+	@Value("${app.upload.avatars-dir:uploads/avatars}")
+	private String avatarsDir;
+
+	@Value("${app.upload.avatars-url:/uploads/}")
+	private String avatarsUrlPrefix;
 	
 	@GetMapping("/userlist")
 	@CrossOrigin(origins = "http://localhost:4200")
@@ -317,13 +318,6 @@ public class UserController
 		return new ResponseEntity<List<Integer>>(enrollmentsCount, HttpStatus.OK);
 	}
 
-	@GetMapping("/enrollments")
-	@CrossOrigin(origins = "http://localhost:4200")
-	public ResponseEntity<List<Enrollment>> getAllEnrollments() throws Exception {
-		List<Enrollment> enrollments = enrollmentService.getAllEnrollments();
-		return new ResponseEntity<List<Enrollment>>(enrollments, HttpStatus.OK);
-	}
-
 	@PutMapping("user/premuim/{email}/{isPremuim}")
 	@CrossOrigin(origins = "http://localhost:4200")
 	public ResponseEntity<List<String>> updateStatus(@PathVariable String email, @PathVariable boolean isPremuim) throws Exception
@@ -345,6 +339,46 @@ public class UserController
 	public ResponseEntity<List<User>> getAllUsers() {
 		List<User> users = userService.getAllUsers();
 		return new ResponseEntity<>(users, HttpStatus.OK);
+	}
+
+	@PostMapping("/users/{email:.+}/avatar")
+	@CrossOrigin(origins = "http://localhost:4200")
+	public ResponseEntity<?> uploadAvatar(@PathVariable String email, @RequestParam("file") MultipartFile file) {
+		if (file.isEmpty()) {
+			return new ResponseEntity<>("File is empty", HttpStatus.BAD_REQUEST);
+		}
+		User user = userService.fetchUserByEmail(email);
+		Professor professor = user == null ? professorService.fetchProfessorByEmail(email) : null;
+		if (user == null && professor == null) {
+			return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+		}
+
+		try {
+			Path dir = Paths.get(avatarsDir).toAbsolutePath().normalize();
+			Files.createDirectories(dir);
+			String ext = "";
+			String original = file.getOriginalFilename();
+			if (original != null && original.contains(".")) {
+				ext = original.substring(original.lastIndexOf("."));
+			}
+			String filename = UUID.randomUUID().toString() + ext;
+			Path destination = dir.resolve(filename).normalize();
+			file.transferTo(destination.toFile());
+
+			// ensure URL points to the avatars subfolder
+			String publicUrl = avatarsUrlPrefix + (avatarsUrlPrefix.endsWith("/") ? "" : "/") + "avatars/" + filename;
+			if (user != null) {
+				user.setAvatarUrl(publicUrl);
+				userService.updateUserProfile(user);
+			} else if (professor != null) {
+				professor.setAvatarUrl(publicUrl);
+				professorService.updateProfessorProfile(professor);
+			}
+
+			return new ResponseEntity<>(publicUrl, HttpStatus.OK);
+		} catch (IOException e) {
+			return new ResponseEntity<>("Upload failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 	@PutMapping("/users/{email}")
 	@CrossOrigin(origins = "http://localhost:4200")
@@ -369,43 +403,15 @@ public class UserController
 		return new ResponseEntity<>(saved, HttpStatus.OK);
 	}
 
-	@DeleteMapping("/users/{email}")
+	@DeleteMapping("/users/{email:.+}")
 	@CrossOrigin(origins = "http://localhost:4200")
 	public ResponseEntity<String> deleteUser(@PathVariable String email) {
-		userService.deleteUserByEmail(email);
-		return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
-	}
-
-	@PostMapping("/users/{email}/avatar")
-	@CrossOrigin(origins = "http://localhost:4200")
-	public ResponseEntity<Map<String, String>> uploadAvatar(@PathVariable String email,
-															@RequestParam("file") MultipartFile file) throws IOException {
-		if (file.isEmpty()) {
-			return ResponseEntity.badRequest().body(Map.of("message", "File is empty"));
+		try {
+			userService.deleteUserByEmail(email);
+			return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
+		} catch (Exception ex) {
+			return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
 		}
-		User user = userService.fetchUserByEmail(email);
-		if (user == null) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		String originalName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
-		String extension = "";
-		int dotIndex = originalName.lastIndexOf('.');
-		if (dotIndex >= 0) {
-			extension = originalName.substring(dotIndex);
-		}
-		String filename = UUID.randomUUID().toString() + extension;
-		Path avatarDir = Paths.get(uploadDir, "avatars").toAbsolutePath().normalize();
-		Files.createDirectories(avatarDir);
-		Path target = avatarDir.resolve(filename);
-		Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-
-		String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-				.path("/uploads/avatars/")
-				.path(filename)
-				.toUriString();
-
-		userService.updateUserAvatar(email, fileUrl);
-		return ResponseEntity.ok(Map.of("avatarUrl", fileUrl));
 	}
 
 

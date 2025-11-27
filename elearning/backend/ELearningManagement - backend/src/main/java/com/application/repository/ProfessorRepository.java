@@ -10,8 +10,6 @@ import com.application.model.Professor;
 public interface ProfessorRepository extends CrudRepository<Professor, String> {
 
 	Professor findByEmail(String email);
-	
-	Professor findByEmailIgnoreCase(String email);
 
 	List<Professor> findProfessorListByEmail(String email);
 
@@ -23,11 +21,11 @@ public interface ProfessorRepository extends CrudRepository<Professor, String> {
 
 	@Transactional
 	@Modifying
-	@Query(value = "update professor set status = 'APPROVED' where email = ?1", nativeQuery = true)
+	@Query(value = "update professor set status = 1 where email = ?1", nativeQuery = true)
 	void updateStatus(String email);
 
 	@Transactional
 	@Modifying
-	@Query(value = "update professor set status = 'REJECTED' where email = ?1", nativeQuery = true)
+	@Query(value = "update professor set status = 0 where email = ?1", nativeQuery = true)
 	void rejectStatus(String email);
 }
