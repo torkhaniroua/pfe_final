@@ -101,4 +101,16 @@ public class ProfessorService {
 			professorRepo.delete(p);
 		}
 	}
+
+	/**
+	 * Reset password with a temporary one (used for forgot-password)
+	 */
+	public void resetPassword(String email, String rawTempPassword) {
+		Professor p = professorRepo.findByEmail(email);
+		if (p == null) {
+			throw new RuntimeException("Professor not found");
+		}
+		p.setPassword(passwordEncoder.encode(rawTempPassword));
+		professorRepo.save(p);
+	}
 }

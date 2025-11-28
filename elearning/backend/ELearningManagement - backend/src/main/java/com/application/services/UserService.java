@@ -125,4 +125,16 @@ public class UserService {
 		user.setPassword(passwordEncoder.encode(randomPassword));
 		return userRepo.save(user);
 	}
+
+	/**
+	 * Reset password with a temporary one (used for forgot-password)
+	 */
+	public void resetPassword(String email, String rawTempPassword) {
+		User user = userRepo.findByEmail(email);
+		if (user == null) {
+			throw new RuntimeException("User not found");
+		}
+		user.setPassword(passwordEncoder.encode(rawTempPassword));
+		userRepo.save(user);
+	}
 }
